@@ -5,6 +5,7 @@ namespace Velocity {
 
     void Renderer::Init() {
         s_Context = RenderContext::Create();
+        s_Context->Init();
     }
 
     Ref<RenderContext> Renderer::GetInternalContext() {

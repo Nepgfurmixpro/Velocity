@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include <map>
+#include <set>
 
 namespace Velocity {
     class VLKRenderContext : public RenderContext {
@@ -15,9 +16,11 @@ namespace Velocity {
         VLKRenderContext();
         ~VLKRenderContext();
 
+        void Init() override;
         void SwapBuffers() override;
 
         VkInstance& GetInstance();
+        VkSurfaceKHR& GetSurface();
     private:
         void CreateInstance();
         void CreateDebugMessenger();
@@ -34,5 +37,8 @@ namespace Velocity {
         VkDevice m_Device;
 
         VkQueue m_GraphicsQueue;
+        VkQueue m_PresentQueue;
+
+        VkSurfaceKHR m_Surface;
     };
 }

@@ -21,6 +21,7 @@ namespace Velocity {
         void PollEvents() override;
         void OnUpdate() override;
 
+        void* GetNative() override;
     private:
         GLFWwindow* m_Window;
 

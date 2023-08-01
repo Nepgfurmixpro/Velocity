@@ -1,5 +1,8 @@
 #include <Platform/Vulkan/VLKUtils.hpp>
 
+#include <Render/Renderer.hpp>
+#include <Platform/Vulkan/VLKRenderContext.hpp>
+
 namespace Velocity::VLK {
     std::vector<const char*> ValidationLayers = {
             "VK_LAYER_KHRONOS_validation"
@@ -40,9 +43,6 @@ namespace Velocity::VLK {
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
                 spdlog::warn("Vulkan Debug: {0}", pCallbackData->pMessage);
-                break;
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                spdlog::info("Vulkan Debug: {0}", pCallbackData->pMessage);
                 break;
             default:
                 spdlog::debug("Vulkan Debug: {0}", pCallbackData->pMessage);
@@ -132,7 +132,7 @@ namespace Velocity::VLK {
     }
 
     bool QueueFamilyIndices::IsComplete() {
-        return graphicsFamily.has_value();
+        return graphicsFamily.has_value() && presentFamily.has_value();
     }
 
     QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) {
@@ -144,15 +144,25 @@ namespace Velocity::VLK {
 
         int i = 0;
 
+        auto testRenderer = Renderer::GetInternalContext();
+        auto renderer = (VLKRenderContext*) Renderer::GetInternalContext().get();
+
         for (const auto& queueFamily : queueFamilies) {
             if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 indices.graphicsFamily = i;
+            }
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, renderer->GetSurface(), &presentSupport);
+
+            if (presentSupport) {
+                indices.presentFamily = i;
             }
 
             if (indices.IsComplete()) break;
 
             i++;
         }
-        return QueueFamilyIndices();
+        return indices;
     }
 }

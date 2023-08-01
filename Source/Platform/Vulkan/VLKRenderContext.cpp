@@ -1,9 +1,17 @@
 #include <Platform/Vulkan/VLKRenderContext.hpp>
 
+#include <Core/Application.hpp>
+
 namespace Velocity {
     VLKRenderContext::VLKRenderContext() {
+
+    }
+
+    void VLKRenderContext::Init() {
+        spdlog::debug("Initializing the Vulkan Render Context");
         this->CreateInstance();
         this->CreateDebugMessenger();
+        this->CreateSurface();
         this->PickPhysicalDevice();
         this->CreateLogicalDevice();
     }
@@ -16,6 +24,7 @@ namespace Velocity {
             VLK::DestroyDebugUtilsMessengerEXT(m_Instance, m_DebugMessenger, nullptr);
         }
 
+        vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
         vkDestroyInstance(m_Instance, nullptr);
     }
 
@@ -34,7 +43,7 @@ namespace Velocity {
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Velocity";
+        appInfo.pApplicationName = Application::Get()->GetSettings().Name;
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Velocity";
         appInfo.apiVersion = VK_API_VERSION_1_3;
@@ -144,23 +153,30 @@ namespace Velocity {
 
     void VLKRenderContext::CreateLogicalDevice() {
         VLK::QueueFamilyIndices indices = VLK::FindQueueFamilies(m_PhysicalDevice);
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
-        queueCreateInfo.queueCount = 1;
 
         float queuePriority = 1.0f;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        std::set<uint32_t> uniqueFamilies = {indices.presentFamily.value(), indices.graphicsFamily.value()};
+
+        for (auto& queueFamily : uniqueFamilies) {
+            VkDeviceQueueCreateInfo queueCreateInfo{};
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = queueFamily;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfos.push_back(queueCreateInfo);
+        }
 
         VkPhysicalDeviceFeatures deviceFeatures{};
         deviceFeatures.geometryShader = VK_TRUE;
 
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.pQueueCreateInfos = &queueCreateInfo;
-        createInfo.queueCreateInfoCount = 1;
+        createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pEnabledFeatures = &deviceFeatures;
         createInfo.enabledExtensionCount = 0;
+
         if (VLK::EnableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(VLK::ValidationLayers.size());
             createInfo.ppEnabledLayerNames = VLK::ValidationLayers.data();
@@ -174,11 +190,19 @@ namespace Velocity {
                 "Failed to create physical device.");
 
         vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
+        vkGetDeviceQueue(m_Device, indices.presentFamily.value(), 0, &m_PresentQueue);
     }
 
     void VLKRenderContext::CreateSurface() {
         VLK::ValidateResult(
-                glfwCreateWindowSurface(m_Instance, )
-                )
+                glfwCreateWindowSurface(
+                        m_Instance,
+                        (GLFWwindow*)Application::Get()->GetWindow()->GetNative(),
+                        nullptr, &m_Surface), true, "Failed to create window surface"
+                );
+    }
+
+    VkSurfaceKHR &VLKRenderContext::GetSurface() {
+        return m_Surface;
     }
 }

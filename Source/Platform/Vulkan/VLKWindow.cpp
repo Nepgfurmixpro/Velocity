@@ -28,10 +28,11 @@ namespace Velocity {
 
         glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window) {
             auto self = (VLKWindow*)glfwGetWindowUserPointer(window);
-            self->m_EventCallback(WindowEvent{
-                EventType::Quit,
-                nullptr
-            });
+            auto event = WindowEvent{
+                    EventType::Quit,
+                    nullptr
+            };
+            self->m_EventCallback(event);
         });
     }
 
@@ -63,5 +64,9 @@ namespace Velocity {
 
     uint32_t VLKWindow::GetHeight() {
         return m_Height;
+    }
+
+    void* VLKWindow::GetNative() {
+        return m_Window;
     }
 }

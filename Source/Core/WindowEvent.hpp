@@ -17,5 +17,5 @@ namespace Velocity {
         EventData* Data;
     };
 
-    using WindowEventCallback = std::function<void(const WindowEvent&)>;
+    using WindowEventCallback = std::function<void(WindowEvent&)>;
 }

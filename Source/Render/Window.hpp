@@ -27,6 +27,8 @@ namespace Velocity {
         virtual void PollEvents() = 0;
         virtual void OnUpdate() = 0;
 
+        virtual void* GetNative() = 0;
+
         static Ref<Window> Create(const WindowProps& props);
     };
 }
