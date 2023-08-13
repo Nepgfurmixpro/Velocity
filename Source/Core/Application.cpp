@@ -21,8 +21,6 @@ namespace Velocity {
         m_Window->SetEventCallback([this](WindowEvent& event) {
             this->OnEvent(event);
         });
-
-        Renderer::Init();
     }
 
     void Application::Run() {

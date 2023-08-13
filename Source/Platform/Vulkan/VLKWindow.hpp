@@ -5,6 +5,8 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <Render/RenderContext.hpp>
+#include <Render/Renderer.hpp>
 
 namespace Velocity {
     class VLKWindow : public Window {
@@ -27,5 +29,7 @@ namespace Velocity {
 
         uint32_t m_Width, m_Height;
         WindowEventCallback m_EventCallback;
+
+        Ref<RenderContext> m_Context;
     };
 }

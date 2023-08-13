@@ -156,7 +156,7 @@ namespace Velocity {
 
         float queuePriority = 1.0f;
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueFamilies = {indices.presentFamily.value(), indices.graphicsFamily.value()};
+        std::set<uint32_t> uniqueFamilies = {indices.PresentFamily.value(), indices.GraphicsFamily.value()};
 
         for (auto& queueFamily : uniqueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo{};
@@ -175,7 +175,8 @@ namespace Velocity {
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.enabledExtensionCount = 0;
+        createInfo.ppEnabledExtensionNames = VLK::DeviceExtensions.data();
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(VLK::DeviceExtensions.size());
 
         if (VLK::EnableValidationLayers) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(VLK::ValidationLayers.size());
@@ -189,8 +190,8 @@ namespace Velocity {
                 true,
                 "Failed to create physical device.");
 
-        vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
-        vkGetDeviceQueue(m_Device, indices.presentFamily.value(), 0, &m_PresentQueue);
+        vkGetDeviceQueue(m_Device, indices.GraphicsFamily.value(), 0, &m_GraphicsQueue);
+        vkGetDeviceQueue(m_Device, indices.PresentFamily.value(), 0, &m_PresentQueue);
     }
 
     void VLKRenderContext::CreateSurface() {
