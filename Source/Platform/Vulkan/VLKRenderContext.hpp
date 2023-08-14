@@ -21,12 +21,17 @@ namespace Velocity {
 
         VkInstance& GetInstance();
         VkSurfaceKHR& GetSurface();
+        VkDevice& GetDevice();
+        VkExtent2D& GetSwapchainExtent();
     private:
         void CreateInstance();
         void CreateDebugMessenger();
         void PickPhysicalDevice();
         void CreateLogicalDevice();
         void CreateSurface();
+        void CreateSwapchain();
+        void CreateImageViews();
+        void CreateGraphicsPipeline();
 
         std::vector<const char*> GetExtensions();
 
@@ -40,5 +45,12 @@ namespace Velocity {
         VkQueue m_PresentQueue;
 
         VkSurfaceKHR m_Surface;
+
+        VkSwapchainKHR m_Swapchain;
+        std::vector<VkImage> m_SwapchainImages;
+        VkFormat m_SwapchainImageFormat;
+        VkExtent2D m_SwapchainExtent;
+
+        std::vector<VkImageView> m_SwapchainImageViews;
     };
 }

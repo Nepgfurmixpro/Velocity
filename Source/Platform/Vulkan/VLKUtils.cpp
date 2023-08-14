@@ -130,6 +130,17 @@ namespace Velocity::VLK {
             score += 50;
         }
 
+        VkPhysicalDeviceMemoryProperties memoryProps{};
+        vkGetPhysicalDeviceMemoryProperties(device, &memoryProps);
+        std::vector<VkMemoryHeap> heaps(memoryProps.memoryHeaps, memoryProps.memoryHeaps + memoryProps.memoryHeapCount);
+
+        for (const auto& heap : heaps) {
+            if (heap.flags & VkMemoryHeapFlagBits::VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+                score += heap.size / 1048576; // heap.size / bytes to mb conversion
+                break;
+            }
+        }
+
         if (!deviceFeatures.geometryShader) {
             score = 0;
         }
@@ -207,10 +218,10 @@ namespace Velocity::VLK {
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, ctx->GetSurface(), &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, ctx->GetSurface(), &presentModeCount, nullptr);
         if (formatCount != 0) {
             details.PresentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, ctx->GetSurface(), &formatCount, details.PresentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, ctx->GetSurface(), &presentModeCount, details.PresentModes.data());
         }
 
         return details;

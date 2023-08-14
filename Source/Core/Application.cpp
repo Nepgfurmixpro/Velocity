@@ -4,6 +4,7 @@ namespace Velocity {
     Application* Application::s_Instance = nullptr;
 
     Application::Application(const ApplicationSettings& settings) : m_Settings(settings){
+        s_Instance = this;
         spdlog::set_pattern("[%T %D] [%n] [%^%l%$] [thread %t] %v");
         spdlog::set_level(spdlog::level::debug);
 
@@ -17,10 +18,11 @@ namespace Velocity {
 
         m_Window = Window::Create(props);
 
-        s_Instance = this;
         m_Window->SetEventCallback([this](WindowEvent& event) {
             this->OnEvent(event);
         });
+
+        Renderer::Init();
     }
 
     void Application::Run() {

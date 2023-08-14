@@ -14,10 +14,17 @@ namespace Velocity {
         this->CreateSurface();
         this->PickPhysicalDevice();
         this->CreateLogicalDevice();
+        this->CreateSwapchain();
+        this->CreateImageViews();
     }
 
     VLKRenderContext::~VLKRenderContext() noexcept {
         spdlog::debug("Cleaning up VLKRenderContext");
+        for (auto imageView : m_SwapchainImageViews) {
+            vkDestroyImageView(m_Device, imageView, nullptr);
+        }
+
+        vkDestroySwapchainKHR(m_Device, m_Swapchain, nullptr);
         vkDestroyDevice(m_Device, nullptr);
 
         if (VLK::EnableValidationLayers) {
@@ -43,7 +50,8 @@ namespace Velocity {
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = Application::Get()->GetSettings().Name;
+        auto app = Application::Get();
+        appInfo.pApplicationName = app->GetSettings().Name;
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Velocity";
         appInfo.apiVersion = VK_API_VERSION_1_3;
@@ -145,6 +153,7 @@ namespace Velocity {
 
         if (candidates.rbegin()->first > 0) {
             m_PhysicalDevice = candidates.rbegin()->second;
+            spdlog::debug("Picked GPU {0}", VLK::GetDeviceName(m_PhysicalDevice));
         } else {
             spdlog::critical("No GPU found that will work with this engine.");
             throw std::runtime_error("No GPU found");
@@ -195,15 +204,111 @@ namespace Velocity {
     }
 
     void VLKRenderContext::CreateSurface() {
+        auto app = Application::Get();
         VLK::ValidateResult(
                 glfwCreateWindowSurface(
                         m_Instance,
-                        (GLFWwindow*)Application::Get()->GetWindow()->GetNative(),
-                        nullptr, &m_Surface), true, "Failed to create window surface"
+                        (GLFWwindow*)app->GetWindow()->GetNative(),
+                        nullptr, &m_Surface), false, "Failed to create window surface"
                 );
     }
 
     VkSurfaceKHR &VLKRenderContext::GetSurface() {
         return m_Surface;
+    }
+
+    void VLKRenderContext::CreateSwapchain() {
+        VLK::SwapChainSupportDetails swapchainSupport = VLK::QuerySwapChainSupport(m_PhysicalDevice);
+
+        VkSurfaceFormatKHR  surfaceFormat = VLK::ChooseSwapSurfaceFormat(swapchainSupport.Formats);
+        VkPresentModeKHR presentMode = VLK::ChooseSwapPresentMode(swapchainSupport.PresentModes);
+        VkExtent2D extent = VLK::ChooseSwapExtent(swapchainSupport.Capabilities);
+
+        uint32_t imageCount = swapchainSupport.Capabilities.minImageCount + 1;
+
+        if (swapchainSupport.Capabilities.maxImageCount > 0 && imageCount > swapchainSupport.Capabilities.maxImageCount) {
+            imageCount = swapchainSupport.Capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = m_Surface;
+
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = extent;
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+        VLK::QueueFamilyIndices indices = VLK::FindQueueFamilies(m_PhysicalDevice);
+        uint32_t queueFamilyIndices[] = {indices.GraphicsFamily.value(), indices.PresentFamily.value()};
+
+        if (indices.GraphicsFamily != indices.PresentFamily) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        } else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+
+        createInfo.preTransform = swapchainSupport.Capabilities.currentTransform;
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        createInfo.presentMode = presentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+        VLK::ValidateResult(
+                vkCreateSwapchainKHR(m_Device, &createInfo, nullptr, &m_Swapchain),
+                true,
+                "Failed to create swapchain");
+
+        vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, nullptr);
+        m_SwapchainImages.resize(imageCount);
+        vkGetSwapchainImagesKHR(m_Device, m_Swapchain, &imageCount, m_SwapchainImages.data());
+
+        m_SwapchainImageFormat = surfaceFormat.format;
+        m_SwapchainExtent = extent;
+    }
+
+    void VLKRenderContext::CreateImageViews() {
+        m_SwapchainImageViews.resize(m_SwapchainImages.size());
+
+        for (size_t i = 0; i < m_SwapchainImages.size(); i++) {
+            VkImageViewCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            createInfo.image = m_SwapchainImages[i];
+            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            createInfo.format = m_SwapchainImageFormat;
+
+            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            createInfo.subresourceRange.baseMipLevel = 0;
+            createInfo.subresourceRange.levelCount = 1;
+            createInfo.subresourceRange.baseArrayLayer = 0;
+            createInfo.subresourceRange.layerCount = 1;
+
+            VLK::ValidateResult(
+                    vkCreateImageView(m_Device, &createInfo, nullptr, &m_SwapchainImageViews[i]),
+                    true,
+                    "Failed to create image views."
+                    );
+        }
+    }
+
+    void VLKRenderContext::CreateGraphicsPipeline() {
+
+    }
+
+    VkDevice &VLKRenderContext::GetDevice() {
+        return m_Device;
+    }
+
+    VkExtent2D &VLKRenderContext::GetSwapchainExtent() {
+        return m_SwapchainExtent;
     }
 }

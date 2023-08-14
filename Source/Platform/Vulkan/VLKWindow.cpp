@@ -34,10 +34,6 @@ namespace Velocity {
             };
             self->m_EventCallback(event);
         });
-
-        Renderer::Init();
-
-        m_Context = Renderer::GetInternalContext();
     }
 
     void VLKWindow::PollEvents() {
@@ -45,6 +41,9 @@ namespace Velocity {
     }
 
     void VLKWindow::OnUpdate() {
+        if (m_Context == nullptr) {
+            m_Context = Renderer::GetInternalContext();
+        }
         m_Context->SwapBuffers();
     }
 
