@@ -22,7 +22,9 @@ namespace Velocity {
         VkInstance& GetInstance();
         VkSurfaceKHR& GetSurface();
         VkDevice& GetDevice();
+
         VkExtent2D& GetSwapchainExtent();
+        VkFormat& GetSwapchainFormat();
     private:
         void CreateInstance();
         void CreateDebugMessenger();

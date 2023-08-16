@@ -311,4 +311,8 @@ namespace Velocity {
     VkExtent2D &VLKRenderContext::GetSwapchainExtent() {
         return m_SwapchainExtent;
     }
+
+    VkFormat &VLKRenderContext::GetSwapchainFormat() {
+        return m_SwapchainImageFormat;
+    }
 }

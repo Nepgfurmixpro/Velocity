@@ -24,6 +24,7 @@ namespace Velocity {
         static Application* Get();
         Ref<Window> GetWindow();
         ApplicationSettings& GetSettings();
+
     private:
         void OnEvent(WindowEvent& event);
 
